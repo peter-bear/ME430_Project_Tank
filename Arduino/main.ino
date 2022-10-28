@@ -8,12 +8,12 @@ PIN 10 - TRIG
 PIN 9 - ECHO
 
 H-bridge
-PIN 13 - 1,2 Enable
-PIN 12 - 3,4 Enable
+PIN 6 - 1,2 Enable
+PIN 5 - 3,4 Enable
 PIN 8 - Input 1
 PIN 7 - Input 2
-PIN 6 - Input 3
-PIN 5 - Input 4
+PIN 4 - Input 3
+PIN 2 - Input 4
 
 
 */
@@ -22,12 +22,12 @@ PIN 5 - Input 4
 #define servoPin 11
 #define ultraSoundT 10
 #define ultraSoundE 8
-#define HLEnable 13
-#define HREnable 12
+#define HLEnable 6
+#define HREnable 5
 #define HInput1 8
 #define HInput2 7
-#define HInput3 6
-#define HInput4 5
+#define HInput3 4
+#define HInput4 2
 
 String inputString ="";
 bool stringComplete = false;
@@ -48,26 +48,64 @@ void setup(){
     
     shootGun.attach(servoPin);
 
+    // init motor speed
     motorLSpeed = 0;
     motorRSpeed = 0;
+
+    //setMotorSpeed(0, 100, 200);
+
 }
 
 void loop(){
     
-    // 摇杆向前， 小车向前移动，2 wheel 速度与位移y有关
-    digitalWrite(HREnable, motorLSpeed);
-    digitalWrite(HLEnable, motorRSpeed);
+    analogWrite(HREnable, motorRSpeed);
+    analogWrite(HLEnable, motorLSpeed);
 
 
     delay(10);
 }
 
-void setMotorSpeed(uint16_t x, uint16_t y){
-    if(x > 0){
-        motorLSpeed += x;
+/*
+Set two motor's speed according to joystick's x and y position
+*/
+void setMotorSpeed(int x, int y, int speed){
+    if(x >= 0 && y > 0){
+        motorLSpeed = speed;
+        motorRSpeed = speed - x;
+        setMotorDirection(true);
+    }else if(x <= 0 && y > 0){
+        motorLSpeed = speed + x;
+        motorRSpeed = speed;
+        setMotorDirection(true);
+    }else if(x >= 0 && y < 0){
+        motorLSpeed = speed;
+        motorRSpeed = speed - x;
+        setMotorDirection(false);
+    }else if(x <= 0 && y < 0){
+        motorLSpeed = speed + x;
+        motorRSpeed = speed;
+        setMotorDirection(false);
     }else{
         motorLSpeed = 0;
         motorRSpeed = 0;
+    }
+}
+
+/*
+Set motor direction
+up == true ? forward : backward
+*/
+void setMotorDirection(bool up){
+    if(up){
+        digitalWrite(HInput1, LOW);
+        digitalWrite(HInput2, HIGH);
+        digitalWrite(HInput3, LOW);
+        digitalWrite(HInput4, HIGH);    
+    }else{
+        digitalWrite(HInput1, HIGH);
+        digitalWrite(HInput2, LOW);
+        digitalWrite(HInput3, HIGH);
+        digitalWrite(HInput4, LOW);    
     }
 }
 
