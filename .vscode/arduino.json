@@ -1,6 +1,7 @@
 {
-    "port": "COM7",
-    "board": "arduino:avr:uno",
+    "port": "COM4",
+    "board": "arduino:avr:mega",
     "programmer": "arduino:avrisp",
-    "sketch": "Arduino\\ultraSonic.ino"
+    "sketch": "Arduino\\simpleTest.ino",
+    "configuration": "cpu=atmega2560"
 }
