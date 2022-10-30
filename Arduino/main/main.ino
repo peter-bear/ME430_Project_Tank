@@ -55,14 +55,17 @@
 #define DHTTYPE DHT11   // DHT 11
 
 int serialLen = 7;
-byte serialBuf[7];
+int serialBuf[7];
 bool serialComplete = false;
+String inputString ="";
+
 
 const byte endSignal = 255;
 const int stepsPerRevolution = 2048; 
 Stepper gunDeskStepper(stepsPerRevolution, 22, 26, 24, 28);
 Stepper gunStepperL(stepsPerRevolution, 30, 34, 32, 36); 
 Stepper gunStepperR(stepsPerRevolution, 23, 27, 25, 29);
+int threhold = 50;
 
 int deskStepCounter = 0;
 int gunStepCounter = 0;
@@ -97,31 +100,37 @@ void setup(){
 }
 
 void loop(){
-    
+   
     analogWrite(HREnable, motorRSpeed);
     analogWrite(HLEnable, motorLSpeed);
-    getHumidityAndTemp();
+    
+
 
     if(serialComplete){
-        byte signal = serialBuf[0];
-        if(signal == 0){
+        char s = inputString[0];
+        
+       seperate(inputString);
+        
+        
+        if(s == 0){
 
-        }else if(signal == 1){
-            int x = (serialBuf[1]<<8) | serialBuf[2];
-            int y = (serialBuf[3]<<8) | serialBuf[4];
-            int speed = (serialBuf[5]<<8) | serialBuf[6];
-            //Serial.println(String("Motor Move --")+String("X: ")+x+String(" Y: ")+y+String("speed: ")+speed);
-            //setMotorSpeed(x, y, speed);
-        }else if(signal == 2){
-            int x = (serialBuf[1]<<8) | serialBuf[2];
-            int y = (serialBuf[3]<<8) | serialBuf[4];
+        }else if(s == 'M'){
+            int x = serialBuf[1];
+            int y = serialBuf[2];
+            int speed = serialBuf[3];
+            Serial.println(String("Motor Move --")+String("X: ")+x+String(" Y: ")+y+String("speed: ")+speed);
+            setMotorSpeed(x, y, speed);
+        }else if(s == 'G'){
+            int x = serialBuf[1];
+            int y = serialBuf[2];
             //Serial.println(String("Gun Desk --")+String("X: ")+x+String(" Y: ")+y);
             setGunDesk(x, y);
-        }else if(signal == 3){
+        }else if(s == 'F'){
             gunShoot();
             //Serial.println("Shoot");
         }
         serialComplete = false;
+        inputString = "";
     }
 }
 
@@ -129,21 +138,21 @@ void loop(){
     Set two motor's speed according to joystick's x and y position
 */
 void setMotorSpeed(int x, int y, int speed){
-    if(getUltrasonicDist() > 3){
-        if(x >= 0 && y > 0){
+
+        if(x >= threhold && y > threhold){
             motorLSpeed = speed;
             motorRSpeed = speed - x;
             setMotorDirection(true);
-        }else if(x <= 0 && y > 0){
-            motorLSpeed = speed + x;
+        }else if(x <= threhold && y > threhold){
+            motorLSpeed = speed - x;
             motorRSpeed = speed;
             setMotorDirection(true);
-        }else if(x >= 0 && y < 0){
+        }else if(x >= threhold && y < threhold){
             motorLSpeed = speed;
             motorRSpeed = speed - x;
             setMotorDirection(false);
-        }else if(x <= 0 && y < 0){
-            motorLSpeed = speed + x;
+        }else if(x <= threhold && y < threhold){
+            motorLSpeed = speed - x;
             motorRSpeed = speed;
             setMotorDirection(false);
         }
@@ -151,11 +160,7 @@ void setMotorSpeed(int x, int y, int speed){
             motorLSpeed = 0;
             motorRSpeed = 0;
         }
-    }
-    else{
-        motorLSpeed = 0;
-        motorRSpeed = 0;
-    }
+
 }
 
 /*
@@ -187,12 +192,12 @@ void setMotorDirection(bool up){
 */
 void setGunDesk(int x, int y){
     // gun desk rotate: turn left / right
-    if(x > 0 && deskStepCounter > -stepsPerRevolution/2){
+    if(x > threhold && deskStepCounter > -stepsPerRevolution/2){
         gunDeskStepper.setSpeed(abs(x));
         gunDeskStepper.step(-1);
         deskStepCounter--;
         delay(10);
-    }else if(x < 0 && deskStepCounter < stepsPerRevolution/2){
+    }else if(x < threhold && deskStepCounter < stepsPerRevolution/2){
         gunDeskStepper.setSpeed(abs(x));
         gunDeskStepper.step(1);
         deskStepCounter++;
@@ -200,14 +205,14 @@ void setGunDesk(int x, int y){
     }
 
     // gun rotate: up or down
-    if(y > 0 && gunStepCounter > -stepsPerRevolution/12){
+    if(y > threhold && gunStepCounter > -stepsPerRevolution/12){
         gunStepperL.setSpeed(abs(y));
         gunStepperR.setSpeed(abs(y));
         gunStepperL.step(-1);
         gunStepperR.step(-1);
         gunStepCounter--;
         delay(10);
-    }else if(y < 0 && gunStepCounter < stepsPerRevolution/12){
+    }else if(y < threhold && gunStepCounter < stepsPerRevolution/12){
         gunStepperL.setSpeed(abs(y));
         gunStepperR.setSpeed(abs(y));
         gunStepperL.step(1);
@@ -231,15 +236,15 @@ void gunShoot(){
  *  Sensor Parts
  */
 
-// get temperature 
-void getHumidityAndTemp(){
-    byte signal = 4;
-    humi = (int8_t)dht.readHumidity();
-    temp = (int8_t)dht.readTemperature();
-    long rst = (signal<<24) | (temp << 16) | (humi << 8) | endSignal;
-    Serial.println(rst);
-    delay(10000);
-}
+//// get temperature 
+//void getHumidityAndTemp(){
+//    byte signal = 4;
+//    humi = (int8_t)dht.readHumidity();
+//    temp = (int8_t)dht.readTemperature();
+//    long rst = (signal<<24) | (temp << 16) | (humi << 8) | endSignal;
+//    Serial.println(rst);
+//    delay(10000);
+//}
 
 // get ultrasonic distance
 int getUltrasonicDist(){
@@ -256,15 +261,38 @@ int getUltrasonicDist(){
 
 // read serial, stop serial listening after reading 255
 void serialEvent(){
-  int i = 0;
-  while(Serial.available()&& !serialComplete){
-  	byte tmp  = Serial.read();
-    //Serial.println(tmp);
-    if(tmp == endSignal){
-      serialComplete = true;
+  while(Serial.available() && !serialComplete){
+    char inChar = (char)Serial.read();
+      if (inChar == '\n'){
+          inputString += inChar;
+          serialComplete = true;
+          
+      }else{
+          inputString += inChar;
+      }
     }
-    serialBuf[i] = tmp;
-    i++;
-  }
+}
+
+void seperate(String input){
+    
+    int cnt = 1;
+    int i = 2;
+    while(input[i] != '\n'){
+        
+        if(input[i] == ' '){
+          i++;
+           continue;
+        }
+           
+        String tmp = "";
+        while(input[i] !=' ' && input[i] != '\n'){
+         
+            tmp += input[i];
+            i++;
+        }
+       
+        serialBuf[cnt] = tmp.toInt();
+        cnt ++;
+    } 
   
 }
