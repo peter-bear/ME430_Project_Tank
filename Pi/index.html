@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Touch Tracker Marker</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <style type="text/css">
+        body {
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+    <!--    <script type="text/javascript" src="magictouch.js"></script>-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script type="text/javascript">
+
+        var g_canvas;
+        var g_ctx;
+        var g_windowWidth = 0;
+        var g_windowHeight = 0;
+
+        var g_timer;
+        var g_touches = [];
+
+        var g_left_stickbox_x;
+        var g_left_stickbox_y;
+        var g_right_stickbox_x;
+        var g_right_stickbox_y;
+
+        var g_left_stick_x;
+        var g_left_stick_y;
+        var g_right_stick_x;
+        var g_right_stick_y;
+
+        var g_stick_radius;
+        var g_stickbox_radius;
+
+        var g_touch_start = false;
+
+        var g_last_lstick_x;
+        var g_last_lstick_y;
+        var g_last_rstick_x;
+        var g_last_rstick_y;
+
+
+        function init() {
+            g_canvas = document.getElementById('canvas');
+            g_ctx = g_canvas.getContext('2d');
+            g_timer = setInterval(loop, 16);
+
+            g_windowWidth = window.innerWidth;
+            g_windowHeight = window.innerHeight;
+
+            g_stick_radius = g_windowHeight / 10 * 1;
+            g_stickbox_radius = g_windowHeight / 10 * 1.5;
+
+            g_left_stickbox_x = g_windowWidth / 10 * 1.5;
+            g_left_stickbox_y = g_windowHeight / 10 * 7;
+
+            g_right_stickbox_x = g_windowWidth / 10 * 8;
+            g_right_stickbox_y = g_windowHeight / 10 * 7;
+
+            g_left_stick_x = g_left_stickbox_x;
+            g_left_stick_y = g_left_stickbox_y;
+
+            g_right_stick_x = g_right_stickbox_x;
+            g_right_stick_y = g_right_stickbox_y;
+
+            g_canvas.style.width = g_windowWidth + 'px';
+            g_canvas.style.height = g_windowHeight + 'px';
+            g_canvas.width = g_windowWidth;
+            g_canvas.height = g_windowHeight;
+
+            g_canvas.addEventListener('touchend', function () {
+                g_ctx.clearRect(0, 0, g_windowWidth, g_windowHeight);
+            });
+
+            g_canvas.addEventListener('touchmove', function (event) {
+                event.preventDefault();
+                g_touches = event.touches;
+
+            });
+
+            g_canvas.addEventListener('touchstart', function (event) {
+                //console.log('start');
+                g_touch_start = true;
+
+            });
+
+            g_canvas.addEventListener('touchend', function (event) {
+                g_left_stick_x = g_left_stickbox_x;
+                g_left_stick_y = g_left_stickbox_y;
+
+                g_right_stick_x = g_right_stickbox_x;
+                g_right_stick_y = g_right_stickbox_y;
+
+                g_touch_start = false;
+
+            });
+
+            window.addEventListener('resize', function (event) {
+                g_windowWidth = window.innerWidth;
+                g_windowHeight = window.innerHeight;
+
+                g_canvas.style.width = g_windowWidth + 'px';
+                g_canvas.style.height = g_windowHeight + 'px';
+                g_canvas.width = g_windowWidth;
+                g_canvas.height = g_windowHeight;
+
+            }, true);
+
+
+        }
+
+        function loop() {
+
+            update();
+            render();
+
+        }
+
+        function update() {
+
+            let foundLeft = false, foundRight = false;
+            for (let i = 0; i < g_touches.length; i++) {
+                let touch = g_touches[i];
+                let px = touch.pageX;
+                let py = touch.pageY;
+
+                console.log("px py: " + px + "  " + py);
+
+                if (!foundLeft && isInsideLeftStickBox(px, py)) {
+                    g_left_stick_x = px;
+                    g_left_stick_y = py;
+                    foundLeft = true;
+                }
+
+                if (!foundRight && isInsideRightStickBox(px, py)) {
+                    g_right_stick_x = px;
+                    g_right_stick_y = py;
+                    foundRight = true;
+                }
+            }
+
+            if(  (g_last_lstick_x != g_left_stick_x) || (g_last_lstick_y != g_left_stick_y)
+            || (g_last_rstick_x != g_right_stick_x) || (g_last_rstick_y != g_right_stick_y) ){
+                sendJoyStickPos();
+
+                g_last_lstick_x = g_left_stick_x;
+                g_last_lstick_y = g_left_stick_y;
+                g_last_rstick_x = g_right_stick_x;
+                g_last_rstick_y = g_right_stick_y;
+            }
+
+
+        }
+
+        function render() {
+
+            g_ctx.clearRect(0, 0, g_windowWidth, g_windowHeight);
+
+            // draw left joystick box
+            g_ctx.beginPath();
+
+            g_ctx.arc(g_left_stickbox_x, g_left_stickbox_y, g_stickbox_radius, 0, 2 * Math.PI, true);
+            g_ctx.fillStyle = "rgba(100,100,230,0.2)";
+            g_ctx.fill();
+            g_ctx.strokeStyle = "rgba(0, 0, 200, 0.8)";
+            g_ctx.stroke();
+
+            g_ctx.closePath();
+
+            // draw right joystick box
+            g_ctx.beginPath();
+
+            g_ctx.arc(g_right_stickbox_x, g_right_stickbox_y, g_stickbox_radius, 0, 2 * Math.PI, true);
+            g_ctx.fillStyle = "rgba(100,100,230,0.2)";
+            g_ctx.fill();
+            g_ctx.strokeStyle = "rgba(0, 0, 200, 0.8)";
+            g_ctx.stroke();
+
+            g_ctx.closePath();
+
+
+            // render left joystick
+            g_ctx.beginPath();
+            g_ctx.arc(g_left_stick_x, g_left_stick_y, g_stick_radius, 0, 2 * Math.PI, true);
+
+            g_ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            g_ctx.fill();
+
+            g_ctx.lineWidth = 2.0;
+            g_ctx.strokeStyle = "rgba(0, 0, 200, 0.8)";
+            g_ctx.stroke();
+
+            g_ctx.closePath();
+
+            // render right joystick
+            g_ctx.beginPath();
+            g_ctx.arc(g_right_stick_x, g_right_stick_y, g_stick_radius, 0, 2 * Math.PI, true);
+
+            g_ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            g_ctx.fill();
+
+            g_ctx.lineWidth = 2.0;
+            g_ctx.strokeStyle = "rgba(0, 0, 200, 0.8)";
+            g_ctx.stroke();
+
+            g_ctx.closePath();
+
+        }
+
+
+        function isInsideLeftStickBox(x, y) {
+            return (Math.sqrt((x - g_left_stickbox_x) * (x - g_left_stickbox_x) + (y - g_left_stickbox_y) * (y - g_left_stickbox_y)) <= g_stickbox_radius);
+
+        }
+
+        function isInsideRightStickBox(x, y) {
+            return (Math.sqrt((x - g_right_stickbox_x) * (x - g_right_stickbox_x) + (y - g_right_stickbox_y) * (y - g_right_stickbox_y)) <= g_stickbox_radius);
+        }
+
+        function sendJoyStickPos() {
+
+            let lx_displacement = g_left_stick_x - g_left_stickbox_x;
+            let ly_displacement = g_left_stickbox_y - g_left_stick_y;
+            let rx_displacement = g_right_stick_x - g_right_stickbox_x;
+            let ry_displacement = g_right_stickbox_y - g_right_stick_y;
+
+            lx_displacement = Math.round(lx_displacement / g_stickbox_radius * 250);
+            ly_displacement = Math.round(ly_displacement / g_stickbox_radius * 250);
+            rx_displacement = Math.round(rx_displacement / g_stickbox_radius * 250);
+            ry_displacement = Math.round(ry_displacement / g_stickbox_radius * 250);
+
+            $.post("http://192.168.1.248:8090/api/joystick/",
+                {
+                    lx: lx_displacement,
+                    ly: ly_displacement,
+                    rx: rx_displacement,
+                    ry: ry_displacement,
+                },
+                function (data, status) {
+
+                });
+        }
+
+
+    </script>
+</head>
+<body onload="init()">
+
+<canvas id="canvas" width="300" height="300" style="top:0px; left:0px; width: 300px; height: 300px;"></canvas>
+<object id="tuio" type="application/x-tuio">Plugin FAILED to load</object>
+
+
+
+</body>
+</html>
