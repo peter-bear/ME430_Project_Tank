@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "cstddef": "cpp",
+        "initializer_list": "cpp",
+        "vector": "cpp",
+        "xutility": "cpp"
+    }
+}

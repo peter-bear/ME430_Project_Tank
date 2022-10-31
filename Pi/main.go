@@ -96,7 +96,7 @@ func joystick_handler(w http.ResponseWriter, req *http.Request) {
 func main() {
 
 	//设置串口编号
-	ser := &serial.Config{Name: "COM3", Baud: 9600}
+	ser := &serial.Config{Name: "COM5", Baud: 9600}
 	//打开串口
 	g_port, _ = serial.OpenPort(ser)
 

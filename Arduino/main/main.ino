@@ -34,9 +34,10 @@
     PIN 12 - Right Gun
 
 */
+
+#include <ArduinoSTL.h>
 #include <Stepper.h>
 #include <Servo.h>
-#include "DHT.h"
 
 #define soundTrig 10
 #define soundEcho 9
@@ -51,38 +52,49 @@
 #define GunL 13
 #define GunR 12
 
-#define DHTPIN 3     // Digital pin connected to the DHT sensor
-#define DHTTYPE DHT11   // DHT 11
+#define DHTPIN 3      // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT11 // DHT 11
 
-int serialLen = 7;
-int serialBuf[7];
-bool serialComplete = false;
-String inputString = "";
-
+#define MOTOR_THREHOLD 50
+#define STEPPER_THREHOLD 50
 
 const byte endSignal = 255;
 const int stepsPerRevolution = 2048;
+
 Stepper gunDeskStepper(stepsPerRevolution, 22, 26, 24, 28);
 Stepper gunStepperL(stepsPerRevolution, 30, 34, 32, 36);
 Stepper gunStepperR(stepsPerRevolution, 23, 27, 25, 29);
-int threhold = 50;
 
-int deskStepCounter = 0;
-int gunStepCounter = 0;
+Servo myServo;
 
-int motorLSpeed, motorRSpeed;
+#define EVENT_UNKNOWN 0
+#define EVENT_M 1
+#define EVENT_G 2
 
-DHT dht(DHTPIN, DHTTYPE);
+struct Event
+{
+  byte type;
+  byte para1;
+  byte para2;
+  byte para3;
+};
 
-int8_t temp, humi;
+std::vector<Event> eventList;
 
-int deskStepMove;
-int deskGunMove;
-int motorX;
-int motorY;
-uint8_t motorSpeed;
+String g_serialInput;
+byte motorX;
+byte motorY;
+byte motorSpeed;
 
-void setup() {
+byte deskStepperX;
+byte gunServoY;
+
+int deskStepperStep;
+int gunStepperStep;
+unsigned long deskStepperLastTime;
+
+void setup()
+{
   Serial.begin(9600);
   Serial.println("Start");
   pinMode(HLEnable, OUTPUT);
@@ -94,237 +106,189 @@ void setup() {
   pinMode(GunL, OUTPUT);
   pinMode(GunR, OUTPUT);
   pinMode(soundTrig, OUTPUT); // Sets the trigPin as an OUTPUT
-  pinMode(soundEcho, INPUT); // Sets the echoPin as an INPUT
-  gunDeskStepper.setSpeed(10);
-  gunStepperL.setSpeed(10);
-  gunStepperR.setSpeed(10);
-  dht.begin();
+  pinMode(soundEcho, INPUT);  // Sets the echoPin as an INPUT
 
-  // init motor speed
-  motorLSpeed = 0;
-  motorRSpeed = 0;
-
-  motorX = threhold;
-  motorY = threhold;
-  motorSpeed = threhold;
-  deskStepMove = threhold;
+  motorX = MOTOR_THREHOLD;
+  motorY = MOTOR_THREHOLD;
+  motorSpeed = MOTOR_THREHOLD;
 
   digitalWrite(HInput1, LOW);
   digitalWrite(HInput2, LOW);
   digitalWrite(HInput3, LOW);
   digitalWrite(HInput4, LOW);
 
+  myServo.attach(13);
+  gunDeskStepper.setSpeed(10);
+  gunStepperL.setSpeed(5);
+  gunStepperR.setSpeed(5);
+  
+  deskStepperStep = 0;
+  gunStepperStep = 0;
+  gunServoY = 5;
+
+  deskStepperLastTime = millis();
+  
+
 }
 
-void loop() {
-
-  analogWrite(HREnable, motorRSpeed);
-  analogWrite(HLEnable, motorLSpeed);
-
-  //    setGunDesk(30, 100);
-
-  if (serialComplete) {
-    seperate(inputString);
-    char s = inputString[0];
-    if (s == 0) {
-
-    } else if (s == 'M') {
-      motorX = serialBuf[1];
-      motorY = serialBuf[2];
-      //motorSpeed = serialBuf[3];
-      //Serial.println(String("Motor Move --")+String("X: ")+x+String(" Y: ")+y+String(" speed: ")+speed);
-      motorSpeed = 180;
-    } else if (s == 'G') {
-      deskStepMove = serialBuf[1];
-      deskGunMove = serialBuf[2];
-      //Serial.println(String("Gun Desk --")+String("X: ")+x+String(" Y: ")+y);
+void loop()
+{
 
 
-    } else if (s == 'F') {
-      gunShoot();
-      //Serial.println("Shoot");
+  digitalWrite(HREnable, HIGH);
+  digitalWrite(HLEnable, HIGH);
+
+  if(eventList.size() != 0){
+    Event e = eventList.front();
+    eventList.erase(eventList.begin());
+
+    switch (e.type)
+    {
+    case EVENT_M:
+      Serial.println("GET M");
+      motorX = e.para1;
+      motorY = e.para2;
+      motorSpeed = e.para3;
+      break;
+
+    case EVENT_G:
+      Serial.println("GET G");
+
+      if(e.para1 > 50){
+        deskStepperStep = 1;
+      } else if(e.para1 < 50){
+        deskStepperStep = -1;
+      } else {
+        deskStepperStep = 0;
+      }
+
+      gunServoY = 10 - e.para2/10;
+      
+      
+      //e.para2;
+      break;
+    
+    default:
+      break;
     }
 
-    serialComplete = false;
-    inputString = "";
-  }
-
-  setMotorSpeed(motorX, motorY, motorSpeed);
-  setGunDesk(deskStepMove, deskGunMove);
-  
-
-}
-
-/*
-    Set two motor's speed according to joystick's x and y position
-*/
-void setMotorSpeed(int x, int y, uint8_t speed) {
-  motorLSpeed = speed;
-  motorRSpeed = speed;
-      
-  if (y > threhold) {
-    setMotorDirection(true);    
-  } else if (y < threhold) {
-    setMotorDirection(false);
-  } else {
-    motorLSpeed = 0;
-    motorRSpeed = 0;
-  }
-  //  if (x >= threhold && y > threhold) {
-  //    motorLSpeed = speed;
-  //    motorRSpeed = speed - x;
-  //    setMotorDirection(true);
-  //  } else if (x <= threhold && y > threhold) {
-  //    motorLSpeed = speed - x;
-  //    motorRSpeed = speed;
-  //    setMotorDirection(true);
-  //  } else if (x >= threhold && y < threhold) {
-  //    motorLSpeed = speed;
-  //    motorRSpeed = speed - x;
-  //    setMotorDirection(false);
-  //  } else if (x <= threhold && y < threhold) {
-  //    motorLSpeed = speed - x;
-  //    motorRSpeed = speed;
-  //    setMotorDirection(false);
-  //  }
-  //  else {
-  //    motorLSpeed = 0;
-  //    motorRSpeed = 0;
-  //  }
-
-}
-
-/*
-    Set motor direction
-    up == true ? forward : backward
-*/
-void setMotorDirection(bool up) {
-  if (up) {
-    digitalWrite(HInput1, LOW);
-    digitalWrite(HInput2, HIGH);
-    digitalWrite(HInput3, LOW);
-      
-    digitalWrite(HInput4, HIGH);
-  } else {
-    digitalWrite(HInput1, HIGH);
-    digitalWrite(HInput2, LOW);
-    digitalWrite(HInput3, HIGH);
-    digitalWrite(HInput4, LOW);
   }
   
+  syncState();
+
 }
 
-/*
-    Set Tank Gun and Gun Desk Rotation
-    x controls Gun Desk to turn left or right
-    y controls Gun to turn up or down
+void syncState()
+{
+  if (motorY > MOTOR_THREHOLD) {
 
-    Gun Desk can only turn 180 degrees to the left or turn 180 degrees to the right
-    Gun can only turn +- 30 degrees
+       digitalWrite(HInput1, LOW);
+       digitalWrite(HInput2, HIGH);
+       digitalWrite(HInput3, LOW);
+       digitalWrite(HInput4, HIGH);
 
-*/
-void setGunDesk(int x, int y) {
-  // gun desk rotate: turn left / right
+       
+  } else if (motorY < MOTOR_THREHOLD) {
 
-  if (x > threhold && deskStepCounter < stepsPerRevolution / 2) {
-
-    gunDeskStepper.step(1);
-    deskStepCounter++;
-    delay(10);
-  } else if (x < threhold && deskStepCounter > -stepsPerRevolution / 2) {
-    gunDeskStepper.step(-1);
-    deskStepCounter--;
-    delay(10);
+       digitalWrite(HInput1, HIGH);
+       digitalWrite(HInput2, LOW);
+       digitalWrite(HInput3, HIGH);
+       digitalWrite(HInput4, LOW);
+       
+  } else {
+      digitalWrite(HInput1, LOW);
+      digitalWrite(HInput2, LOW);
+      digitalWrite(HInput3, LOW);
+      digitalWrite(HInput4, LOW);
   }
 
-  // gun rotate: up or down
-  if (y > threhold && gunStepCounter > -stepsPerRevolution / 12) {
 
-    gunStepperL.step(-1);
-    gunStepperR.step(-1);
-    gunStepCounter--;
-    delay(10);
-  } else if (y < threhold && gunStepCounter < stepsPerRevolution / 12) {
+    if( millis() - deskStepperLastTime > 1){
+      if(deskStepperStep != 0){
+        gunDeskStepper.step(deskStepperStep);
+      }
+      deskStepperLastTime = millis();
+    }
 
-    gunStepperL.step(1);
-    gunStepperR.step(1);
-    gunStepCounter++;
-    delay(10);
+    if(gunServoY != 5){
+      myServo.write(gunServoY);
+    }
+    
+
+}
+
+
+void parseEvent(String input)
+{
+
+  Event e;
+
+  if(input[0] == 'M'){
+    int firstSapce = -1;
+      int secondSapce = -1;
+
+      for(int i=2;i<input.length();i++){
+        if (input[i] == ' '){
+          if(firstSapce == -1){
+            firstSapce = i;
+          } else {
+            secondSapce = i;
+          }
+        }
+      }
+
+      int x = input.substring(2, firstSapce).toInt();
+      int y = input.substring(firstSapce + 1, secondSapce).toInt();
+      int speed = input.substring(secondSapce + 1).toInt();
+
+      
+      e.type = EVENT_M;
+      e.para1 = (byte)x;
+      e.para2 = (byte)y;
+      e.para3 = (byte)speed;
+
+      eventList.push_back(e);
   }
+
+  if(input[0] == 'G'){
+    int sapce = -1;
+
+      for(int i=2;i<input.length();i++){
+        if (input[i] == ' '){
+          sapce = i;
+        }
+      }
+
+      int x = input.substring(2, sapce).toInt();
+      int y = input.substring(sapce + 1).toInt();
+      
+      e.type = EVENT_G;
+      e.para1 = (byte)x;
+      e.para2 = (byte)y;
+
+      eventList.push_back(e);
+  }
+
+  return;
+
+  
 }
-
-/*
-    Gun Fire
-*/
-void gunShoot() {
-  digitalWrite(GunL, HIGH);
-  digitalWrite(GunR, HIGH);
-  delay(2000);
-}
-
-
-/**
-    Sensor Parts
-*/
-
-//// get temperature
-//void getHumidityAndTemp(){
-//    byte signal = 4;
-//    humi = (int8_t)dht.readHumidity();
-//    temp = (int8_t)dht.readTemperature();
-//    long rst = (signal<<24) | (temp << 16) | (humi << 8) | endSignal;
-//    Serial.println(rst);
-//    delay(10000);
-//}
-
-// get ultrasonic distance
-int getUltrasonicDist() {
-  digitalWrite(soundTrig, LOW);
-  delay(2);
-  digitalWrite(soundTrig, HIGH);
-  delay(10);
-  digitalWrite(soundTrig, LOW);
-
-  return pulseIn(soundEcho, HIGH) * 0.034 / 2;
-}
-
-
 
 // read serial, stop serial listening after reading 255
-void serialEvent() {
-  while (Serial.available()) {
+void serialEvent()
+{
+  while (Serial.available())
+  {
     char inChar = (char)Serial.read();
-    if (inChar == '\n') {
-      Serial.println(inputString);
-      inputString += inChar;
-      serialComplete = true;
-
-    } else {
-      inputString += inChar;
+    if (inChar == '\n')
+    {
+      Serial.println(g_serialInput);
+      parseEvent(g_serialInput);
+      g_serialInput = "";
+    }
+    else
+    {
+      g_serialInput += inChar;
     }
   }
-}
-
-void seperate(String input) {
-
-  int cnt = 1;
-  int i = 2;
-  while (input[i] != '\n') {
-
-    if (input[i] == ' ') {
-      i++;
-      continue;
-    }
-
-    String tmp = "";
-    while (input[i] != ' ' && input[i] != '\n') {
-
-      tmp += input[i];
-      i++;
-    }
-
-    serialBuf[cnt] = tmp.toInt();
-    cnt ++;
-  }
-
 }
