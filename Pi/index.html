@@ -230,12 +230,39 @@
             let rx_displacement = g_right_stick_x - g_right_stickbox_x;
             let ry_displacement = g_right_stickbox_y - g_right_stick_y;
 
-            lx_displacement = Math.round(lx_displacement / g_stickbox_radius * 250);
-            ly_displacement = Math.round(ly_displacement / g_stickbox_radius * 250);
-            rx_displacement = Math.round(rx_displacement / g_stickbox_radius * 250);
-            ry_displacement = Math.round(ry_displacement / g_stickbox_radius * 250);
+            lx_displacement = Math.round(lx_displacement / g_stickbox_radius * 50 + 50);
+            ly_displacement = Math.round(ly_displacement / g_stickbox_radius * 50 + 50) ;
+            rx_displacement = Math.round(rx_displacement / g_stickbox_radius * 50 + 50);
+            ry_displacement = Math.round(ry_displacement / g_stickbox_radius * 50 + 50);
 
-            $.post("http://192.168.1.129:8090/api/joystick/",
+            if(lx_displacement < 0){
+                lx_displacement = 0;
+            }
+            if(ly_displacement < 0){
+                ly_displacement = 0;
+            }
+            if(rx_displacement < 0){
+                rx_displacement = 0;
+            }
+            if(ry_displacement < 0){
+                ry_displacement = 0;
+            }
+
+            if(lx_displacement > 100){
+                lx_displacement = 100;
+            }
+            if(ly_displacement > 100){
+                ly_displacement = 100;
+            }
+            if(rx_displacement > 100){
+                rx_displacement = 100;
+            }
+            if(ry_displacement > 100){
+                ry_displacement = 100;
+            }
+
+
+            $.post("http://" + location.host + "/api/joystick/",
                 {
                     lx: lx_displacement,
                     ly: ly_displacement,
