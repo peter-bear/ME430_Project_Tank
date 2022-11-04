@@ -45,14 +45,8 @@ func joystick_handler(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		//sendData := make([]byte, 5)
 		lx, _ := strconv.Atoi(req.FormValue("lx"))
 		ly, _ := strconv.Atoi(req.FormValue("ly"))
-		//sendData[0] = 1
-		//sendData[1] = byte(lx)
-		//sendData[2] = byte(ly)
-		//sendData[3] = byte(math.Sqrt(float64(lx*lx + ly*ly)))
-		//sendData[4] = '\n'
 
 		var leftstick string = fmt.Sprintf("M %d %d %d\n", lx, ly, int(math.Sqrt(float64((lx-50)*(lx-50)+(ly-50)*(ly-50)))))
 
@@ -73,21 +67,6 @@ func joystick_handler(w http.ResponseWriter, req *http.Request) {
 			log.Println(err)
 		}
 
-		//sendData = make([]byte, 4)
-		//rx, _ := strconv.Atoi(req.FormValue("rx"))
-		//ry, _ := strconv.Atoi(req.FormValue("ry"))
-		//sendData[0] = 2
-		//sendData[1] = byte(rx)
-		//sendData[2] = byte(ry)
-		//sendData[3] = '\n'
-		//fmt.Print("Send: ")
-		//fmt.Println(sendData)
-		//
-		//_, err = g_port.Write(sendData)
-		//if err != nil {
-		//	log.Println(err)
-		//}
-
 	default:
 		fmt.Println("Other types")
 	}
@@ -107,26 +86,6 @@ func main() {
 	http.HandleFunc("/api/joystick/", joystick_handler)
 
 	go http.ListenAndServe(":8090", nil)
-
-	////启动一个协程循环发送
-	//go func() {
-	//	for {
-	//
-	//		sendData := make([]byte, 4)
-	//		sendData[0] = 5
-	//		sendData[1] = 6
-	//		sendData[2] = 7
-	//		sendData[3] = 255
-	//		_, err := g_port.Write(sendData)
-	//		if err != nil {
-	//			log.Println(err)
-	//			continue
-	//		}
-	//		log.Print("Send: ")
-	//		log.Println(sendData)
-	//		time.Sleep(time.Second)
-	//	}
-	//}()
 
 	for {
 
