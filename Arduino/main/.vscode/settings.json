@@ -3,6 +3,13 @@
         "cstddef": "cpp",
         "initializer_list": "cpp",
         "vector": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "associative_base": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "iterator": "cpp"
     }
 }

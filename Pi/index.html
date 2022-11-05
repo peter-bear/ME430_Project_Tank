@@ -45,6 +45,7 @@
         var g_last_rstick_x;
         var g_last_rstick_y;
 
+        var g_last_sent_time;
 
         function init() {
             g_canvas = document.getElementById('canvas');
@@ -74,32 +75,53 @@
             g_canvas.width = g_windowWidth;
             g_canvas.height = g_windowHeight;
 
-            g_canvas.addEventListener('touchend', function () {
-                g_ctx.clearRect(0, 0, g_windowWidth, g_windowHeight);
+            g_last_sent_time = performance.now();
+
+            g_canvas.addEventListener('touchstart', function (event) {
+                event.preventDefault();
+                // g_touches = event.changedTouches;
+
+
+
             });
 
             g_canvas.addEventListener('touchmove', function (event) {
                 event.preventDefault();
-                g_touches = event.touches;
+                g_touches = event.changedTouches;
+
 
             });
 
-            g_canvas.addEventListener('touchstart', function (event) {
-                //console.log('start');
-                g_touch_start = true;
-
-            });
 
             g_canvas.addEventListener('touchend', function (event) {
-                g_left_stick_x = g_left_stickbox_x;
-                g_left_stick_y = g_left_stickbox_y;
+                event.preventDefault();
+                g_touches = [];
 
-                g_right_stick_x = g_right_stickbox_x;
-                g_right_stick_y = g_right_stickbox_y;
-
-                g_touch_start = false;
 
             });
+
+            g_canvas.addEventListener('touchcancel', function (event) {
+                event.preventDefault();
+                g_touches = [];
+
+
+
+                // g_left_stick_x = g_left_stickbox_x;
+                // g_left_stick_y = g_left_stickbox_y;
+                //
+                // g_right_stick_x = g_right_stickbox_x;
+                // g_right_stick_y = g_right_stickbox_y;
+
+
+            });
+
+            g_canvas.addEventListener('touchstart', handleStart);
+            g_canvas.addEventListener('touchend', handleEnd);
+            g_canvas.addEventListener('touchcancel', handleCancel);
+            g_canvas.addEventListener('touchmove', handleMove);
+
+
+
 
             window.addEventListener('resize', function (event) {
                 g_windowWidth = window.innerWidth;
@@ -115,6 +137,8 @@
 
         }
 
+
+
         function loop() {
 
             update();
@@ -122,15 +146,15 @@
 
         }
 
-        function update() {
-
+        function updateTouch(){
             let foundLeft = false, foundRight = false;
+
             for (let i = 0; i < g_touches.length; i++) {
                 let touch = g_touches[i];
                 let px = touch.pageX;
                 let py = touch.pageY;
 
-                console.log("px py: " + px + "  " + py);
+                //console.log("px py: " + px + "  " + py);
 
                 if (!foundLeft && isInsideLeftStickBox(px, py)) {
                     g_left_stick_x = px;
@@ -145,8 +169,29 @@
                 }
             }
 
+            if(g_touches == 0){
+                g_left_stick_x = g_left_stickbox_x;
+                g_left_stick_y = g_left_stickbox_y;
+                g_right_stick_x = g_right_stickbox_x;
+                g_right_stick_y = g_right_stickbox_y;
+            }
+
+            // if(!foundLeft){
+            //     g_left_stick_x = g_left_stickbox_x;
+            //     g_left_stick_y = g_left_stickbox_y;
+            // }
+            //
+            // if(!foundRight){
+            //     g_right_stick_x = g_right_stickbox_x;
+            //     g_right_stick_y = g_right_stickbox_y;
+            // }
+
+
+            if(performance.now() - g_last_sent_time > 100){
+
             if(  (g_last_lstick_x != g_left_stick_x) || (g_last_lstick_y != g_left_stick_y)
-            || (g_last_rstick_x != g_right_stick_x) || (g_last_rstick_y != g_right_stick_y) ){
+                || (g_last_rstick_x != g_right_stick_x) || (g_last_rstick_y != g_right_stick_y) ){
+
                 sendJoyStickPos();
 
                 g_last_lstick_x = g_left_stick_x;
@@ -154,6 +199,14 @@
                 g_last_rstick_x = g_right_stick_x;
                 g_last_rstick_y = g_right_stick_y;
             }
+
+                g_last_sent_time = performance.now();
+            }
+        }
+
+        function update() {
+            updateTouch();
+
 
 
         }
@@ -262,16 +315,22 @@
             }
 
 
-            $.post("http://" + location.host + "/api/joystick/",
-                {
-                    lx: lx_displacement,
-                    ly: ly_displacement,
-                    rx: rx_displacement,
-                    ry: ry_displacement,
-                },
-                function (data, status) {
+                //console.log("lx " + lx_displacement, "  ly" + ly_displacement);
 
-                });
+                $.post("http://" + location.host + "/api/joystick/",
+                    {
+                        lx: lx_displacement,
+                        ly: ly_displacement,
+                        rx: rx_displacement,
+                        ry: ry_displacement,
+                    },
+                    function (data, status) {
+
+                    });
+
+
+
+
         }
 
 
@@ -282,7 +341,6 @@
 <!--<iframe width="640" height="480" style="border:none;" src="http://192.168.1.167:8081/"></iframe>-->
 <br>
 <canvas id="canvas" width="300" height="300" style="top:0px; left:0px; width: 300px; height: 300px;"></canvas>
-<button onclick="init();">123</button>
 
 </body>
 </html>

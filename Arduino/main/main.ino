@@ -35,260 +35,86 @@
 
 */
 
-#include <ArduinoSTL.h>
 #include <Stepper.h>
 #include <Servo.h>
+
+#include "Utilities.h"
+#include "EventQueue.h"
+#include "Motors.h"
+#include "SerialCommunicator.h"
+#include "Desk.h"
+#include "Guns.h"
 
 #define soundTrig 10
 #define soundEcho 9
 
-#define HLEnable 6
-#define HREnable 5
-#define HInput1 8
-#define HInput2 7
-#define HInput3 4
-#define HInput4 2
-
-#define GunL 13
-#define GunR 12
-
 #define DHTPIN 3      // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT11 // DHT 11
 
-#define MOTOR_THREHOLD 50
-#define STEPPER_THREHOLD 50
+me430::SerialCommunicator g_serialCommunicator;
+me430::EventQueue g_eventQueue;
+me430::Motors g_motors;
+me430::Desk g_desk;
+me430::Guns g_guns;
 
-const byte endSignal = 255;
-const int stepsPerRevolution = 2048;
-
-Stepper gunDeskStepper(stepsPerRevolution, 22, 26, 24, 28);
-Stepper gunStepperL(stepsPerRevolution, 30, 34, 32, 36);
-Stepper gunStepperR(stepsPerRevolution, 23, 27, 25, 29);
-
-Servo myServo;
-
-#define EVENT_UNKNOWN 0
-#define EVENT_M 1
-#define EVENT_G 2
-
-struct Event
-{
-  byte type;
-  byte para1;
-  byte para2;
-  byte para3;
-};
-
-std::vector<Event> eventList;
-
-String g_serialInput;
-byte motorX;
-byte motorY;
-byte motorSpeed;
-
-byte deskStepperX;
-byte gunServoY;
-
-int deskStepperStep;
-int gunStepperStep;
-unsigned long deskStepperLastTime;
+void onEventParsed(me430::Event *e);
 
 void setup()
 {
-  Serial.begin(9600);
-  Serial.println("Start");
-  pinMode(HLEnable, OUTPUT);
-  pinMode(HREnable, OUTPUT);
-  pinMode(HInput1, OUTPUT);
-  pinMode(HInput2, OUTPUT);
-  pinMode(HInput3, OUTPUT);
-  pinMode(HInput4, OUTPUT);
-  pinMode(GunL, OUTPUT);
-  pinMode(GunR, OUTPUT);
   pinMode(soundTrig, OUTPUT); // Sets the trigPin as an OUTPUT
   pinMode(soundEcho, INPUT);  // Sets the echoPin as an INPUT
 
-  motorX = MOTOR_THREHOLD;
-  motorY = MOTOR_THREHOLD;
-  motorSpeed = MOTOR_THREHOLD;
-
-  digitalWrite(HInput1, LOW);
-  digitalWrite(HInput2, LOW);
-  digitalWrite(HInput3, LOW);
-  digitalWrite(HInput4, LOW);
-
-  myServo.attach(13);
-  gunDeskStepper.setSpeed(10);
-  gunStepperL.setSpeed(5);
-  gunStepperR.setSpeed(5);
-  
-  deskStepperStep = 0;
-  gunStepperStep = 0;
-  gunServoY = 5;
-
-  deskStepperLastTime = millis();
-  
-
+  g_serialCommunicator.init(&onEventParsed);
 }
 
 void loop()
 {
 
-
-  digitalWrite(HREnable, HIGH);
-  digitalWrite(HLEnable, HIGH);
-
-  if(eventList.size() != 0){
-    Event e = eventList.front();
-    eventList.erase(eventList.begin());
+  if (!g_eventQueue.isEmpty())
+  {
+    me430::Event e = g_eventQueue.pop();
+    Serial.println(String("Queue Size: ") + g_eventQueue.getSize());
 
     switch (e.type)
     {
-    case EVENT_M:
+    case me430::EventType::move:
       Serial.println("GET M");
-      motorX = e.para1;
-      motorY = e.para2;
-      motorSpeed = e.para3;
+
+      g_motors.onEvent(&e);
+      g_motors.sync();
       break;
 
-    case EVENT_G:
+    case me430::EventType::gun:
       Serial.println("GET G");
 
-      if(e.para1 > 50){
-        deskStepperStep = 1;
-      } else if(e.para1 < 50){
-        deskStepperStep = -1;
-      } else {
-        deskStepperStep = 0;
-      }
+      g_desk.onEvent(&e);
+      g_guns.onEvent(&e);
 
-      gunServoY = 10 - e.para2/10;
-      
-      
-      //e.para2;
+      // e.para2;
       break;
-    
+
     default:
+      Serial.println(String("Event TYPE") + e.type);
       break;
     }
-
-  }
-  
-  syncState();
-
-}
-
-void syncState()
-{
-  if (motorY > MOTOR_THREHOLD) {
-
-       digitalWrite(HInput1, LOW);
-       digitalWrite(HInput2, HIGH);
-       digitalWrite(HInput3, LOW);
-       digitalWrite(HInput4, HIGH);
-
-       
-  } else if (motorY < MOTOR_THREHOLD) {
-
-       digitalWrite(HInput1, HIGH);
-       digitalWrite(HInput2, LOW);
-       digitalWrite(HInput3, HIGH);
-       digitalWrite(HInput4, LOW);
-       
-  } else {
-      digitalWrite(HInput1, LOW);
-      digitalWrite(HInput2, LOW);
-      digitalWrite(HInput3, LOW);
-      digitalWrite(HInput4, LOW);
   }
 
-
-    if( millis() - deskStepperLastTime > 1){
-      if(deskStepperStep != 0){
-        gunDeskStepper.step(deskStepperStep);
-      }
-      deskStepperLastTime = millis();
-    }
-
-    if(gunServoY != 5){
-      myServo.write(gunServoY);
-    }
-    
-
+  update();
 }
 
-
-void parseEvent(String input)
+void update()
 {
 
-  Event e;
-
-  if(input[0] == 'M'){
-    int firstSapce = -1;
-      int secondSapce = -1;
-
-      for(int i=2;i<input.length();i++){
-        if (input[i] == ' '){
-          if(firstSapce == -1){
-            firstSapce = i;
-          } else {
-            secondSapce = i;
-          }
-        }
-      }
-
-      int x = input.substring(2, firstSapce).toInt();
-      int y = input.substring(firstSapce + 1, secondSapce).toInt();
-      int speed = input.substring(secondSapce + 1).toInt();
-
-      
-      e.type = EVENT_M;
-      e.para1 = (byte)x;
-      e.para2 = (byte)y;
-      e.para3 = (byte)speed;
-
-      eventList.push_back(e);
-  }
-
-  if(input[0] == 'G'){
-    int sapce = -1;
-
-      for(int i=2;i<input.length();i++){
-        if (input[i] == ' '){
-          sapce = i;
-        }
-      }
-
-      int x = input.substring(2, sapce).toInt();
-      int y = input.substring(sapce + 1).toInt();
-      
-      e.type = EVENT_G;
-      e.para1 = (byte)x;
-      e.para2 = (byte)y;
-
-      eventList.push_back(e);
-  }
-
-  return;
-
-  
+  g_desk.update();
+  g_guns.update();
 }
 
-// read serial, stop serial listening after reading 255
+void onEventParsed(me430::Event *e)
+{
+  g_eventQueue.push(e);
+}
+
 void serialEvent()
 {
-  while (Serial.available())
-  {
-    char inChar = (char)Serial.read();
-    if (inChar == '\n')
-    {
-      Serial.println(g_serialInput);
-      parseEvent(g_serialInput);
-      g_serialInput = "";
-    }
-    else
-    {
-      g_serialInput += inChar;
-    }
-  }
+  g_serialCommunicator.onSerialEvent();
 }
