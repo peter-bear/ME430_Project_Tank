@@ -47,22 +47,23 @@
 
         var g_last_sent_time;
 
+
         function init() {
             g_canvas = document.getElementById('canvas');
             g_ctx = g_canvas.getContext('2d');
             g_timer = setInterval(loop, 16);
 
             g_windowWidth = window.innerWidth;
-            g_windowHeight = window.innerHeight - 100;
+            g_windowHeight = window.innerHeight/10*3;
 
-            g_stick_radius = g_windowHeight / 10 * 1;
-            g_stickbox_radius = g_windowHeight / 10 * 1.5;
+            g_stick_radius = g_windowHeight / 10 * 1.5;
+            g_stickbox_radius = g_windowHeight / 10 * 2;
 
             g_left_stickbox_x = g_windowWidth / 10 * 1.5;
-            g_left_stickbox_y = g_windowHeight / 10 * 7;
+            g_left_stickbox_y = g_windowHeight / 2;
 
             g_right_stickbox_x = g_windowWidth / 10 * 8;
-            g_right_stickbox_y = g_windowHeight / 10 * 7;
+            g_right_stickbox_y = g_windowHeight / 2;
 
             g_left_stick_x = g_left_stickbox_x;
             g_left_stick_y = g_left_stickbox_y;
@@ -340,6 +341,7 @@
 
 <!--<iframe width="640" height="480" style="border:none;" src="http://192.168.1.167:8081/"></iframe>-->
 <br>
+<img id="live_stream" width="640" height="480" src="http://192.168.1.167:8080/">
 <canvas id="canvas" width="300" height="300" style="top:0px; left:0px; width: 300px; height: 300px;"></canvas>
 <button id = "horn_btn">Horn</button>
 <button id = "fire_btn">Fire</button>
@@ -356,6 +358,13 @@
     fire_btn.onclick = ()=>{
         $.get("http://" + location.host + "/api/fire/");
     }
+
+    image = document.getElementById('live_stream');
+    image.src = "http://"+ location.host + "/api/stream/"
+    image.width = window.innerWidth;
+    image.height = window.innerHeight/10*6;
+
+    // document.getElementById('live_stream').src = "http://"+ location.host + "/api/stream/"
 
 </script>
 
