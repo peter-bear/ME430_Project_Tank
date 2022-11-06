@@ -54,7 +54,7 @@
             g_timer = setInterval(loop, 16);
 
             g_windowWidth = window.innerWidth;
-            g_windowHeight = window.innerHeight/10*3;
+            g_windowHeight = window.innerHeight/10*7;
 
             g_stick_radius = g_windowHeight / 10 * 1.5;
             g_stickbox_radius = g_windowHeight / 10 * 2;
@@ -190,16 +190,16 @@
 
             if(performance.now() - g_last_sent_time > 100){
 
-            if(  (g_last_lstick_x != g_left_stick_x) || (g_last_lstick_y != g_left_stick_y)
-                || (g_last_rstick_x != g_right_stick_x) || (g_last_rstick_y != g_right_stick_y) ){
+                if(  (g_last_lstick_x != g_left_stick_x) || (g_last_lstick_y != g_left_stick_y)
+                    || (g_last_rstick_x != g_right_stick_x) || (g_last_rstick_y != g_right_stick_y) ){
 
-                sendJoyStickPos();
+                    sendJoyStickPos();
 
-                g_last_lstick_x = g_left_stick_x;
-                g_last_lstick_y = g_left_stick_y;
-                g_last_rstick_x = g_right_stick_x;
-                g_last_rstick_y = g_right_stick_y;
-            }
+                    g_last_lstick_x = g_left_stick_x;
+                    g_last_lstick_y = g_left_stick_y;
+                    g_last_rstick_x = g_right_stick_x;
+                    g_last_rstick_y = g_right_stick_y;
+                }
 
                 g_last_sent_time = performance.now();
             }
@@ -316,18 +316,18 @@
             }
 
 
-                //console.log("lx " + lx_displacement, "  ly" + ly_displacement);
+            //console.log("lx " + lx_displacement, "  ly" + ly_displacement);
 
-                $.post("http://" + location.host + "/api/joystick/",
-                    {
-                        lx: lx_displacement,
-                        ly: ly_displacement,
-                        rx: rx_displacement,
-                        ry: ry_displacement,
-                    },
-                    function (data, status) {
+            $.post("http://" + location.host + "/api/joystick/",
+                {
+                    lx: lx_displacement,
+                    ly: ly_displacement,
+                    rx: rx_displacement,
+                    ry: ry_displacement,
+                },
+                function (data, status) {
 
-                    });
+                });
 
 
 
@@ -341,7 +341,7 @@
 
 <!--<iframe width="640" height="480" style="border:none;" src="http://192.168.1.167:8081/"></iframe>-->
 <br>
-<img id="live_stream" width="640" height="480" src="http://192.168.1.167:8080/">
+<!-- <img id="live_stream" width="640" height="480"  src="http://192.168.1.167:8080/"> -->
 <canvas id="canvas" width="300" height="300" style="top:0px; left:0px; width: 300px; height: 300px;"></canvas>
 <button id = "horn_btn">Horn</button>
 <button id = "fire_btn">Fire</button>
@@ -360,7 +360,7 @@
     }
 
     image = document.getElementById('live_stream');
-    image.src = "http://"+ location.host + "/api/stream/"
+    image.src = "http://"+ location.hostname + ":8080/"
     image.width = window.innerWidth;
     image.height = window.innerHeight/10*6;
 
