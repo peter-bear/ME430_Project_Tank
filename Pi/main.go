@@ -72,6 +72,36 @@ func joystick_handler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func horn_handler(w http.ResponseWriter, req *http.Request) {
+
+	switch req.Method {
+	case "GET":
+		fmt.Println("Get Horn")
+		_, err := g_port.Write([]byte("H\n"))
+		if err != nil {
+			log.Println(err)
+		}
+
+	default:
+		fmt.Println("Other types")
+	}
+}
+
+func fire_handler(w http.ResponseWriter, req *http.Request) {
+
+	switch req.Method {
+	case "GET":
+		fmt.Println("Get Fire")
+		_, err := g_port.Write([]byte("F\n"))
+		if err != nil {
+			log.Println(err)
+		}
+
+	default:
+		fmt.Println("Other types")
+	}
+}
+
 func main() {
 
 	//设置串口编号
@@ -84,6 +114,8 @@ func main() {
 	http.HandleFunc("/headers", headers)
 
 	http.HandleFunc("/api/joystick/", joystick_handler)
+	http.HandleFunc("/api/horn/", horn_handler)
+	http.HandleFunc("/api/fire/", fire_handler)
 
 	go http.ListenAndServe(":8090", nil)
 
@@ -94,7 +126,7 @@ func main() {
 
 		for !serialComplete {
 
-			buf := make([]byte, 1024)
+			buf := make([]byte, 128)
 			lens, _ := g_port.Read(buf)
 
 			if buf[lens-1] != '\n' {

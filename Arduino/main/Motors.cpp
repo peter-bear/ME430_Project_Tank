@@ -25,7 +25,15 @@ Motors::~Motors()
 {
 }
 
-void Motors::update() {}
+void Motors::update() 
+{
+    ultrasound.update();
+    if(ultrasound.getDistance() <= 5)
+    {
+        sync();
+    }
+
+}
 
 void Motors::onEvent(Event *e)
 {
@@ -36,6 +44,14 @@ void Motors::onEvent(Event *e)
 
 void Motors::sync()
 {
+    if(ultrasound.getDistance() <= 5){
+        digitalWrite(HInput1, LOW);
+        digitalWrite(HInput2, LOW);
+        digitalWrite(HInput3, LOW);
+        digitalWrite(HInput4, LOW);
+        return;
+    }
+
     if (y > MOTOR_THREHOLD)
     {
 

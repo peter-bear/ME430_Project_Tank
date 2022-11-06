@@ -2,6 +2,7 @@
 #define MOTORS_H
 
 #include "Utilities.h"
+#include "Ultrasound.h"
 
 #define MOTOR_THREHOLD 50
 
@@ -29,6 +30,8 @@ namespace me430
         byte x;
         byte y;
         byte speed;
+
+        Ultrasound ultrasound;
     };
 }
 

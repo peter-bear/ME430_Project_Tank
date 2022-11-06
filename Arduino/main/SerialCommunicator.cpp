@@ -26,10 +26,8 @@ void SerialCommunicator::onSerialEvent()
         char inChar = (char)Serial.read();
         if (inChar == '\n')
         {
-            Serial.println(input);
             Event e;
             parseEvent(&e);
-
             onEventParsed(&e);
 
             input = "";
@@ -91,5 +89,15 @@ void SerialCommunicator::parseEvent(Event *e)
         e->type = me430::EventType::gun;
         e->para1 = (byte)x;
         e->para2 = (byte)y;
+    }
+
+    if (input[0] == 'H')
+    {
+        e->type = me430::EventType::horn;
+    }
+
+    if (input[0] == 'F')
+    {
+        e->type = me430::EventType::fire;
     }
 }

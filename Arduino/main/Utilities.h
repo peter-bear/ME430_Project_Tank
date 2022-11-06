@@ -19,7 +19,9 @@ namespace me430
     empty,
     unknown,
     move,
-    gun
+    gun,
+    horn,
+    fire,
   };
 }
 

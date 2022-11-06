@@ -44,27 +44,27 @@
 #include "SerialCommunicator.h"
 #include "Desk.h"
 #include "Guns.h"
-
-#define soundTrig 10
-#define soundEcho 9
-
-#define DHTPIN 3      // Digital pin connected to the DHT sensor
-#define DHTTYPE DHT11 // DHT 11
+#include "Screens.h"
+#include "THSensor.h"
+#include "Horn.h"
+#include "Fire.h"
 
 me430::SerialCommunicator g_serialCommunicator;
 me430::EventQueue g_eventQueue;
 me430::Motors g_motors;
 me430::Desk g_desk;
 me430::Guns g_guns;
+me430::Screens g_screens;
+me430::THSensor g_thSensor;
+me430::Horn g_horn;
+me430::Fire g_fire;
 
 void onEventParsed(me430::Event *e);
 
 void setup()
 {
-  pinMode(soundTrig, OUTPUT); // Sets the trigPin as an OUTPUT
-  pinMode(soundEcho, INPUT);  // Sets the echoPin as an INPUT
-
   g_serialCommunicator.init(&onEventParsed);
+  g_screens.init();
 }
 
 void loop()
@@ -73,24 +73,25 @@ void loop()
   if (!g_eventQueue.isEmpty())
   {
     me430::Event e = g_eventQueue.pop();
-    Serial.println(String("Queue Size: ") + g_eventQueue.getSize());
 
     switch (e.type)
     {
     case me430::EventType::move:
-      Serial.println("GET M");
-
       g_motors.onEvent(&e);
       g_motors.sync();
       break;
 
     case me430::EventType::gun:
-      Serial.println("GET G");
-
       g_desk.onEvent(&e);
       g_guns.onEvent(&e);
+      break;
 
-      // e.para2;
+    case me430::EventType::horn:
+      g_horn.onEvent(&e);
+      break;
+
+    case me430::EventType::fire:
+      g_fire.onEvent(&e);
       break;
 
     default:
@@ -104,9 +105,11 @@ void loop()
 
 void update()
 {
-
+  g_motors.update();
   g_desk.update();
   g_guns.update();
+  g_screens.update();
+
 }
 
 void onEventParsed(me430::Event *e)

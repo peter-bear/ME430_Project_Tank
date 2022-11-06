@@ -53,7 +53,7 @@
             g_timer = setInterval(loop, 16);
 
             g_windowWidth = window.innerWidth;
-            g_windowHeight = window.innerHeight;
+            g_windowHeight = window.innerHeight - 100;
 
             g_stick_radius = g_windowHeight / 10 * 1;
             g_stickbox_radius = g_windowHeight / 10 * 1.5;
@@ -341,6 +341,23 @@
 <!--<iframe width="640" height="480" style="border:none;" src="http://192.168.1.167:8081/"></iframe>-->
 <br>
 <canvas id="canvas" width="300" height="300" style="top:0px; left:0px; width: 300px; height: 300px;"></canvas>
+<button id = "horn_btn">Horn</button>
+<button id = "fire_btn">Fire</button>
+
+<script type="text/javascript">
+
+    horn_btn = document.getElementById('horn_btn');
+    fire_btn = document.getElementById('fire_btn');
+
+    horn_btn.onclick = ()=>{
+        $.get("http://" + location.host + "/api/horn/");
+    }
+
+    fire_btn.onclick = ()=>{
+        $.get("http://" + location.host + "/api/fire/");
+    }
+
+</script>
 
 </body>
 </html>
