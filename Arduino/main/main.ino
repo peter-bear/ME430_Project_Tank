@@ -55,7 +55,7 @@ me430::Motors g_motors;
 me430::Desk g_desk;
 me430::Guns g_guns;
 me430::Screens g_screens;
-me430::THSensor g_thSensor;
+//me430::THSensor g_thSensor;
 me430::Horn g_horn;
 me430::Fire g_fire;
 

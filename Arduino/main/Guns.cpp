@@ -50,7 +50,7 @@ void Guns::update()
         if (step != 0)
         {
             stepperL->step(step);
-            stepperR->step(step);
+            stepperR->step(step*(-1));
             totalSteps += step;
         }
 
