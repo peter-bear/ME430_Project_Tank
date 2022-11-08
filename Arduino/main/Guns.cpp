@@ -39,10 +39,10 @@ void Guns::onEvent(Event *e)
 void Guns::update()
 {
 
-    long nextDisplacement = speed * (totalSteps + step);
+    // long nextDisplacement = speed * (totalSteps + step);
 
-    if (nextDisplacement < -1000 || nextDisplacement > 600)
-        return;
+    // if (nextDisplacement < -1000 || nextDisplacement > 600)
+    //     return;
 
     if (millis() - lastStepTime > 1)
     {
